@@ -16,7 +16,7 @@ const TercoGuiado = {
     },
 
     // API URL
-    API_URL: 'http://localhost:3000',
+    API_URL: 'https://converse-com-maria-production.up.railway.app',
 
     // Orações do terço
     oracoes: {
