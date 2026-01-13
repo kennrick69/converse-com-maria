@@ -144,7 +144,7 @@ app.post('/api/audio', async (req, res) => {
                 },
                 audioConfig: {
                     audioEncoding: 'MP3',
-                    speakingRate: 0.95,
+                    speakingRate: 0.90,
                     pitch: 0
                 }
             })
