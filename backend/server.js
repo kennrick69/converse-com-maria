@@ -119,6 +119,31 @@ INSTRUÇÕES:
 });
 
 // ========================================
+// HELPER: Formatar referências bíblicas para TTS
+// ========================================
+function formatarReferenciasBiblicas(texto) {
+    // Converte diversos formatos de referências bíblicas para leitura natural
+    
+    return texto
+        // Formato com versículos alternados: "1:24.26" ou "1,24.26" → "capítulo 1, versículos 24 e 26"
+        .replace(/(\d+)[:.,](\d+)\.(\d+)/g, (match, cap, ver1, ver2) => {
+            return `capítulo ${cap}, versículos ${ver1} e ${ver2}`;
+        })
+        // Formato com intervalo: "1:20-24" ou "1,20-27" ou "1.20-24" → "capítulo 1, versículos 20 a 24"
+        .replace(/(\d+)[:.,](\d+)-(\d+)/g, (match, cap, verIni, verFim) => {
+            return `capítulo ${cap}, versículos ${verIni} a ${verFim}`;
+        })
+        // Formato simples: "1:24" ou "1,24" ou "1.24" → "capítulo 1, versículo 24"
+        .replace(/(\d+)[:.,](\d+)/g, (match, cap, ver) => {
+            return `capítulo ${cap}, versículo ${ver}`;
+        })
+        // Remove parênteses soltos que sobrarem
+        .replace(/\(\s*\)/g, '')
+        .replace(/\(\s*,/g, '(')
+        .replace(/,\s*\)/g, ')');
+}
+
+// ========================================
 // ROTA DE ÁUDIO: TEXT-TO-SPEECH (Google Cloud TTS)
 // ========================================
 app.post('/api/audio', async (req, res) => {
@@ -129,7 +154,10 @@ app.post('/api/audio', async (req, res) => {
             return res.status(400).json({ error: 'Texto não fornecido' });
         }
 
-        console.log('🔊 Gerando áudio para:', texto.substring(0, 50) + '...');
+        // Formatar referências bíblicas para leitura correta
+        const textoFormatado = formatarReferenciasBiblicas(texto);
+
+        console.log('🔊 Gerando áudio para:', textoFormatado.substring(0, 50) + '...');
 
         const response = await fetch(`https://texttospeech.googleapis.com/v1/text:synthesize?key=${process.env.GOOGLE_TTS_API_KEY}`, {
             method: 'POST',
@@ -137,7 +165,7 @@ app.post('/api/audio', async (req, res) => {
                 'Content-Type': 'application/json'
             },
             body: JSON.stringify({
-                input: { text: texto },
+                input: { text: textoFormatado },
                 voice: {
                     languageCode: 'pt-BR',
                     name: 'pt-BR-Chirp3-HD-Leda'
