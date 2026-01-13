@@ -1,6 +1,6 @@
 // ========================================
 // 🙏 CONVERSE COM MARIA - BACKEND
-// Groq (Chat) + ElevenLabs (Voz) + Pagamentos
+// Groq (Chat) + Google Cloud TTS (Voz) + Pagamentos
 // ========================================
 
 require('dotenv').config();
@@ -119,7 +119,7 @@ INSTRUÇÕES:
 });
 
 // ========================================
-// ROTA DE ÁUDIO: TEXT-TO-SPEECH (ElevenLabs)
+// ROTA DE ÁUDIO: TEXT-TO-SPEECH (Google Cloud TTS)
 // ========================================
 app.post('/api/audio', async (req, res) => {
     try {
@@ -131,38 +131,41 @@ app.post('/api/audio', async (req, res) => {
 
         console.log('🔊 Gerando áudio para:', texto.substring(0, 50) + '...');
 
-        const response = await fetch(`https://api.elevenlabs.io/v1/text-to-speech/${process.env.ELEVENLABS_VOICE_ID}`, {
+        const response = await fetch(`https://texttospeech.googleapis.com/v1/text:synthesize?key=${process.env.GOOGLE_TTS_API_KEY}`, {
             method: 'POST',
             headers: {
-                'Accept': 'audio/mpeg',
-                'Content-Type': 'application/json',
-                'xi-api-key': process.env.ELEVENLABS_API_KEY
+                'Content-Type': 'application/json'
             },
             body: JSON.stringify({
-                text: texto,
-                model_id: 'eleven_multilingual_v2',
-                voice_settings: {
-                    stability: 0.75,
-                    similarity_boost: 0.75,
-                    style: 0.5,
-                    use_speaker_boost: true
+                input: { text: texto },
+                voice: {
+                    languageCode: 'pt-BR',
+                    name: 'pt-BR-Chirp3-HD-Leda'
+                },
+                audioConfig: {
+                    audioEncoding: 'MP3',
+                    speakingRate: 0.95,
+                    pitch: 0
                 }
             })
         });
 
         if (!response.ok) {
             const errorText = await response.text();
-            console.error('Erro ElevenLabs:', errorText);
+            console.error('Erro Google TTS:', errorText);
             throw new Error('Erro ao gerar áudio');
         }
 
-        const audioBuffer = await response.arrayBuffer();
+        const data = await response.json();
+        
+        // Google retorna áudio em base64
+        const audioBuffer = Buffer.from(data.audioContent, 'base64');
         
         res.set({
             'Content-Type': 'audio/mpeg',
             'Content-Length': audioBuffer.byteLength
         });
-        res.send(Buffer.from(audioBuffer));
+        res.send(audioBuffer);
 
         console.log('✅ Áudio gerado com sucesso!');
 
@@ -461,7 +464,7 @@ app.get('/api/status', (req, res) => {
         message: '🙏 Servidor Converse com Maria',
         services: {
             chat: 'Groq (Llama 3)',
-            voz: 'ElevenLabs',
+            voz: 'Google Cloud TTS',
             stripe: !!process.env.STRIPE_SECRET_KEY,
             mercadopago: !!process.env.MERCADOPAGO_ACCESS_TOKEN
         },
@@ -479,7 +482,7 @@ app.listen(PORT, () => {
     console.log('========================================');
     console.log(`✅ Servidor: http://localhost:${PORT}`);
     console.log(`✅ Chat: Groq API`);
-    console.log(`✅ Voz: ElevenLabs`);
+    console.log(`✅ Voz: Google Cloud TTS`);
     console.log(`💳 Stripe: ${process.env.STRIPE_SECRET_KEY ? '✓' : '✗'}`);
     console.log(`🇧🇷 Mercado Pago: ${process.env.MERCADOPAGO_ACCESS_TOKEN ? '✓' : '✗'}`);
     console.log('========================================');
